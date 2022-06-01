@@ -4,15 +4,15 @@
 ＠SaKu2110まで  
 
 ## 実装した機能
-- [GET] /ping  
+- [GET] /ping
   - Request: なし
   - Response: {"message": "ping"} / HttpStatusCode(200)
 - [POST] /signin
-  - Request: Header: UserId `string`, Passwrod `string`
+  - Request: Header: UserId `string`, Password `string`
   - Response: {"token": 任意の文字列} / HttpStatusCode(200)
 
 - [POST] /signup
-  - Request: Header: UserId `string`, Passwrod `string`
+  - Request: Header: UserId `string`, Password `string`
   - Response: {"token": 任意の文字列} / HttpStatusCode(201)
 
 ## 実行手順
