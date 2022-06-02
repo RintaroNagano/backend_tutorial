@@ -1,0 +1,146 @@
+openapi: "3.0.2"
+info:
+  title: Backend Tutorial
+  version: "1.0"
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Backend Tutorial
+paths:
+  /ping:
+    get:
+      tags:
+        - Backend Tutorial
+      summary: Find all books
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+  /books/{isbn}:
+    get:
+      tags:
+        - book
+      summary: Find a book by ISBN
+      parameters:
+        - $ref: "#/components/parameters/ISBN"
+      responses:
+        200:
+          $ref: "#/components/responses/200"
+        404:
+          $ref: "#/components/responses/404"
+    patch:
+      tags:
+        - book
+      summary: Update a book by ISBN
+      parameters:
+        - $ref: "#/components/parameters/ISBN"
+      requestBody:
+        description: Book object
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Book"
+        required: true
+      responses:
+        200:
+          $ref: "#/components/responses/200"
+        400:
+          $ref: "#/components/responses/400"
+        404:
+          $ref: "#/components/responses/404"
+    delete:
+      tags:
+        - book
+      summary: Delete a book by ISBN
+      parameters:
+        - $ref: "#/components/parameters/ISBN"
+      responses:
+        200:
+          $ref: "#/components/responses/200"
+        404:
+          $ref: "#/components/responses/404"
+
+components:
+  responses:
+    200:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Book"
+    400:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiResponse"
+    404:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiResponse"
+    500:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiResponse"
+  parameters:
+    ISBN:
+      in: path
+      name: isbn
+      required: true
+      schema:
+        type: string
+      description: International Standard Book Number
+  schemas:
+    Book:
+      required:
+        - isbn
+        - type
+        - own
+      type: object
+      properties:
+        isbn:
+          type: string
+          example: 9781491941195
+        title:
+          type: string
+          description: not needed
+        cover_url:
+          type: string
+          description: not needed
+        number_of_pages:
+          type: string
+          description: not needed
+        type:
+          type: string
+          enum:
+            - ebook
+            - printed book
+          example: ebook
+        format:
+          type: string
+          description: not needed when type is printed book
+          enum:
+            - pdf
+            - epub
+          example: pdf
+        tag:
+          type: string
+        markdown_memo:
+          type: string
+        own:
+          type: boolean
+          example: true
+    ApiResponse:
+      type: object
+      properties:
+        message:
+          type: string

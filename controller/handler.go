@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"crypto/sha256"
+	"encoding/hex"
+
 	"github.com/gin-gonic/gin"
 
 	"sample/db"
@@ -21,25 +24,40 @@ func SignupHandler(c *gin.Context) {
 	password := c.PostForm("Password")
 
 	intUserId, _ := strconv.Atoi(userId)
-	// Create
-	db.DB.Create(&model.User{UserId: intUserId, Password: password, Token: "hogefugapiyo"})
+	checkSum := sha256.Sum256([]byte(password))
+	hashpass := hex.EncodeToString(checkSum[:])
 
-	c.JSON(http.StatusCreated, gin.H{
-		"token": "hogefugapiyo",
-	})
+	user := model.User{}
+
+	db.GetDB().Where("user_id = ?", userId).First(&user)
+	// SELECT * FROM users WHERE name = 'jinzhu' ORDER BY id LIMIT 1;
+
+	if (user == model.User{}) {
+		db.GetDB().Create(&model.User{UserId: intUserId, Password: hashpass})
+		c.JSON(http.StatusCreated, gin.H{
+			"token": "hogefugapiyo",
+		})
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "This user ID has been used",
+		})
+	}
 }
 
 func SigninHandler(c *gin.Context) {
 	userId := c.PostForm("UserId")
 	password := c.PostForm("Password")
 
+	checkSum := sha256.Sum256([]byte(password))
+	hashpass := hex.EncodeToString(checkSum[:])
+
 	var user model.User
 	// Read
-	db.DB.First(&user, "user_id = ?", userId)
+	db.GetDB().First(&user, "user_id = ?", userId)
 
-	if password == user.Password {
+	if hashpass == user.Password {
 		c.JSON(http.StatusOK, gin.H{
-			"token": user.Token,
+			"token": "hogefugapiyo",
 		})
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{

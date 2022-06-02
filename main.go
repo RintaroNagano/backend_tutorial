@@ -4,18 +4,16 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"sample/controller"
-	"sample/model"
 	"sample/db"
+	"sample/model"
 )
-
-
 
 func main() {
 	db.GormConnect()
-	defer db.DB.Close()
+	defer db.GetDB().Close()
 
 	// Migrate the schema
-	db.DB.AutoMigrate(&model.User{})
+	db.GetDB().AutoMigrate(&model.User{})
 
 	r := gin.Default()
 	r.GET("/ping", controller.PingHandler)
