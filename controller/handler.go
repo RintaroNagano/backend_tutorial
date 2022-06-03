@@ -104,13 +104,13 @@ func SigninHandler(c *gin.Context) {
 	if !result.Valid {
 		if checkTokenExpiration(claims) {
 			// if the jwt expires, regenerate and reset cookie
-			token, err := generateToken(userId)
+			jwtString, err = generateToken(userId)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"message": "Failed to generate token",
 				})
 			}
-			c.SetCookie("jwt", token, 300, "/", "localhost", false, true)
+			c.SetCookie("jwt", jwtString, 300, "/", "localhost", false, true)
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"message": "You are not authorized",
