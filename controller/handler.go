@@ -2,7 +2,6 @@ package controller
 
 import (
 	"net/http"
-	"strconv"
 
 	"crypto/sha256"
 	"encoding/hex"
@@ -23,7 +22,6 @@ func SignupHandler(c *gin.Context) {
 	userId := c.PostForm("UserId")
 	password := c.PostForm("Password")
 
-	intUserId, _ := strconv.Atoi(userId)
 	checkSum := sha256.Sum256([]byte(password))
 	hashpass := hex.EncodeToString(checkSum[:])
 
@@ -33,7 +31,7 @@ func SignupHandler(c *gin.Context) {
 	// SELECT * FROM users WHERE name = 'jinzhu' ORDER BY id LIMIT 1;
 
 	if (user == model.User{}) {
-		db.GetDB().Create(&model.User{UserId: intUserId, Password: hashpass})
+		db.GetDB().Create(&model.User{UserId: userId, Password: hashpass})
 		c.JSON(http.StatusCreated, gin.H{
 			"token": "hogefugapiyo",
 		})
