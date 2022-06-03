@@ -41,7 +41,6 @@ func SignupHandler(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"message": "Failed to generate token",
 			})
-			return
 		}
 
 		c.SetCookie("jwt", token, 300, "/", "localhost", false, true)
@@ -59,20 +58,6 @@ func SigninHandler(c *gin.Context) {
 	userId := c.PostForm("UserId")
 	password := c.PostForm("Password")
 
-	checkSum := sha256.Sum256([]byte(password))
-	hashpass := hex.EncodeToString(checkSum[:])
-
-	var user model.User
-	// Read
-	db.GetDB().First(&user, "user_id = ?", userId)
-
-	if hashpass != user.Password {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"message": "Invalid password",
-		})
-		return
-	}
-
 	jwtString, err := c.Cookie("jwt")
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -86,7 +71,7 @@ func SigninHandler(c *gin.Context) {
 	// if the token is invalid (if it has expired according to the expiry time we set on sign in),
 	// or if the signature does not match
 	claims := &model.JwtClaims{}
-	result, err := jwt.ParseWithClaims(jwtString, claims, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(jwtString, claims, func(token *jwt.Token) (interface{}, error) {
 		return constants.Get_const_JWT_KEY(), nil
 	})
 	if err != nil {
@@ -95,33 +80,29 @@ func SigninHandler(c *gin.Context) {
 		})
 		return
 	}
-	if claims.UserId != userId {
+	if !token.Valid || claims.UserId != userId {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"message": "You use invalid token",
+			"message": "You are not authorized",
 		})
 		return
 	}
-	if !result.Valid {
-		if checkTokenExpiration(claims) {
-			// if the jwt expires, regenerate and reset cookie
-			token, err := generateToken(userId)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"message": "Failed to generate token",
-				})
-			}
-			c.SetCookie("jwt", token, 300, "/", "localhost", false, true)
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"message": "You are not authorized",
-			})
-			return
-		}
-	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"token": jwtString,
-	})
+	checkSum := sha256.Sum256([]byte(password))
+	hashpass := hex.EncodeToString(checkSum[:])
+
+	var user model.User
+	// Read
+	db.GetDB().First(&user, "user_id = ?", userId)
+
+	if hashpass == user.Password {
+		c.JSON(http.StatusOK, gin.H{
+			"token": jwtString,
+		})
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Invalid password",
+		})
+	}
 }
 
 func generateToken(userId string) (string, error) {
@@ -146,7 +127,7 @@ func generateToken(userId string) (string, error) {
 	return tokenString, err
 }
 
-func checkTokenExpiration(claims *model.JwtClaims) bool {
+func checkTokenExpiration(claims model.JwtClaims) bool {
 	if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 30*time.Second {
 		return true
 	}
