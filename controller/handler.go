@@ -31,7 +31,7 @@ func SignupHandler(c *gin.Context) {
 	user := model.User{}
 
 	db.GetDB().Where("user_id = ?", userId).First(&user)
-	// SELECT * FROM users WHERE name = 'jinzhu' ORDER BY id LIMIT 1;
+	// SELECT * FROM users WHERE user_id = '(valuable userId)' ORDER BY id LIMIT 1;
 
 	if (user == model.User{}) {
 		db.GetDB().Create(&model.User{UserId: userId, Password: hashpass})
@@ -43,6 +43,7 @@ func SignupHandler(c *gin.Context) {
 			})
 		}
 
+		c.SetCookie("jwt", token, 300, "/", "localhost", false, true)
 		c.JSON(http.StatusCreated, gin.H{
 			"token": token,
 		})
@@ -57,6 +58,35 @@ func SigninHandler(c *gin.Context) {
 	userId := c.PostForm("UserId")
 	password := c.PostForm("Password")
 
+	jwtString, err := c.Cookie("jwt")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "You are not authorized",
+		})
+		return
+	}
+
+	// Parse the JWT string and store the result in `claims`.
+	// Note that we are passing the key in this method as well. This method will return an error
+	// if the token is invalid (if it has expired according to the expiry time we set on sign in),
+	// or if the signature does not match
+	claims := &model.JwtClaims{}
+	token, err := jwt.ParseWithClaims(jwtString, claims, func(token *jwt.Token) (interface{}, error) {
+		return constants.Get_const_JWT_KEY(), nil
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to parse token",
+		})
+		return
+	}
+	if !token.Valid || claims.UserId != userId {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "You are not authorized",
+		})
+		return
+	}
+
 	checkSum := sha256.Sum256([]byte(password))
 	hashpass := hex.EncodeToString(checkSum[:])
 
@@ -66,7 +96,7 @@ func SigninHandler(c *gin.Context) {
 
 	if hashpass == user.Password {
 		c.JSON(http.StatusOK, gin.H{
-			"token": "hogefugapiyo",
+			"token": jwtString,
 		})
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -95,4 +125,11 @@ func generateToken(userId string) (string, error) {
 	}
 
 	return tokenString, err
+}
+
+func checkTokenExpiration(claims model.JwtClaims) bool {
+	if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 30*time.Second {
+		return true
+	}
+	return false
 }
