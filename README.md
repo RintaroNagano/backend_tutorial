@@ -16,6 +16,9 @@
   - Response: {"token": 任意の文字列} / HttpStatusCode(201)
 
 ## 実行手順
-1. go run main.go
+1. git clone "URL about this repo"
+1. cd backend_tutorial
+1. cp .env.sample .env
+1. docker compose up
 1. curl -c cookie.txt -X POST --url http://localhost:8080/signup -d 'UserId=rintaro' -d 'Password=pass'
 1. curl -b cookie.txt -X POST --url http://localhost:8080/signin -d 'UserId=rintaro' -d 'Password=pass'
