@@ -2,12 +2,15 @@ package controller
 
 import (
 	"net/http"
+	"time"
 
 	"crypto/sha256"
 	"encoding/hex"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 
+	"sample/constants"
 	"sample/db"
 	"sample/model"
 )
@@ -32,8 +35,16 @@ func SignupHandler(c *gin.Context) {
 
 	if (user == model.User{}) {
 		db.GetDB().Create(&model.User{UserId: userId, Password: hashpass})
+
+		token, err := generateToken(userId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "Failed to generate token",
+			})
+		}
+
 		c.JSON(http.StatusCreated, gin.H{
-			"token": "hogefugapiyo",
+			"token": token,
 		})
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -62,4 +73,26 @@ func SigninHandler(c *gin.Context) {
 			"message": "Invalid password",
 		})
 	}
+}
+
+func generateToken(userId string) (string, error) {
+	expirationTime := time.Now().Add(constants.EXPIRATION_TIME)
+
+	claims := &model.JwtClaims{
+		UserId: userId,
+		StandardClaims: jwt.StandardClaims{
+			// In JWT, the expiry time is expressed as unix milliseconds
+			ExpiresAt: expirationTime.Unix(),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Create the JWT string
+	tokenString, err := token.SignedString(constants.Get_const_JWT_KEY())
+	if err != nil {
+		return tokenString, err
+	}
+
+	return tokenString, err
 }
