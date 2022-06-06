@@ -16,6 +16,7 @@ import (
 )
 
 func PingHandler(c *gin.Context) {
+	// [Good] ステータスコードにhttpパッケージを使っている
 	c.JSON(http.StatusOK, gin.H{
 		"message": "ping",
 	})
@@ -25,11 +26,16 @@ func SignupHandler(c *gin.Context) {
 	userId := c.PostForm("UserId")
 	password := c.PostForm("Password")
 
+	// [Good]  パスワードのHash化が出来ている
+	/* [Mooto] この処理は一見何をやっているかわからないので別パッケージでラップしてあげる可読性があがる
+	   hashpass := PasswordToHash(password)
+	*/
 	checkSum := sha256.Sum256([]byte(password))
 	hashpass := hex.EncodeToString(checkSum[:])
 
 	user := model.User{}
 
+	// [Good] SQL文を書いているのでなんのクエリを叩いているのかがわかる
 	db.GetDB().Where("user_id = ?", userId).First(&user)
 	// SELECT * FROM users WHERE user_id = '(valuable userId)' ORDER BY id LIMIT 1;
 
@@ -101,6 +107,9 @@ func SigninHandler(c *gin.Context) {
 		})
 		return
 	}
+
+	//[Good] Nullチェックをしている
+	//[Motto] 値がNullの時の処理が書かれているとなおよい
 	if !result.Valid {
 		if checkTokenExpiration(claims) {
 			// if the jwt expires, regenerate and reset cookie
@@ -124,6 +133,7 @@ func SigninHandler(c *gin.Context) {
 	})
 }
 
+// [Motto] Controllerではなく別のパッケージに切り分けたほうがよさそう！
 func generateToken(userId string) (string, error) {
 	expirationTime := time.Now().Add(constants.EXPIRATION_TIME)
 
